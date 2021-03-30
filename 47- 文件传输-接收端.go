@@ -32,7 +32,7 @@ func recvFile(conn net.Conn, fileName string) {
 
 func main() {
 	// 创建用于监听的socket
-	listener, err := net.Listen("tcp", "127.0.0.1:8000")
+	listener, err := net.Listen("tcp", "127.0.0.1:8008")
 	if err != nil {
 		fmt.Println("net.Listen err :", err)
 		return
