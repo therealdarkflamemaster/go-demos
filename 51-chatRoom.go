@@ -25,6 +25,11 @@ func WriteMsgToClient(clnt Client, conn net.Conn) {
 	}
 }
 
+func MakeMsg(clnt Client, msg string) (buf string) {
+	buf = "[" + clnt.Addr + "]" + clnt.Name + ": " + msg
+	return
+}
+
 func HandlerConnect1(conn net.Conn) {
 	defer conn.Close()
 	// 获取用户的网络地址，ip+port
@@ -39,7 +44,39 @@ func HandlerConnect1(conn net.Conn) {
 	go WriteMsgToClient(clnt, conn)
 
 	// 发送用户上线消息到message通道
-	message <- "[" + netAddr + "]" + clnt.Name + " login ..."
+	message <- MakeMsg(clnt, "log in ...")
+
+	// 创建一个go程, 专门处理用户发送的消息
+	go func() {
+		buf := make([]byte, 4096)
+		for {
+			n, err := conn.Read(buf)
+			if n == 0 {
+				fmt.Printf("检测到客户端:%s退出\n", clnt.Name)
+				return
+			}
+			if err != nil {
+				fmt.Println("conn.Read err :", err)
+				return
+			}
+			msg := string(buf[:n-1])
+
+			// 提取在线用户列表
+			if msg == "who" && len(msg) == 3 {
+				conn.Write([]byte("online user list : \n"))
+				// 遍历当前map， 获取在线用户
+				for _, user := range onlineMap {
+					userInfo := user.Addr + " : " + user.Name + "\n"
+					conn.Write([]byte(userInfo))
+				}
+
+			} else {
+				// 将读到的数据广播给所有在线用户, 写入到message
+				message <- MakeMsg(clnt, msg)
+			}
+
+		}
+	}()
 
 	// 保证不退出
 	for {
