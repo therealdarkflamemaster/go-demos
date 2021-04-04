@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net"
+	"strings"
 )
 
 // 创建用户结构体类型
@@ -46,12 +47,16 @@ func HandlerConnect1(conn net.Conn) {
 	// 发送用户上线消息到message通道
 	message <- MakeMsg(clnt, "log in ...")
 
+	// 创建一个channel，用来判断是否退出
+	isQuit := make(chan bool)
+
 	// 创建一个go程, 专门处理用户发送的消息
 	go func() {
 		buf := make([]byte, 4096)
 		for {
 			n, err := conn.Read(buf)
 			if n == 0 {
+				isQuit <- true
 				fmt.Printf("检测到客户端:%s退出\n", clnt.Name)
 				return
 			}
@@ -70,6 +75,13 @@ func HandlerConnect1(conn net.Conn) {
 					conn.Write([]byte(userInfo))
 				}
 
+				// 判断用户发送了 改名 命令
+			} else if len(msg) >= 8 && msg[:6] == "rename" { //rename|newName
+				newName := strings.Split(msg, "|")[1] // msg[8:]
+				clnt.Name = newName                   // 修改结构体成员Name
+				onlineMap[netAddr] = clnt             // 更新在线用户列表
+				conn.Write([]byte("rename successfully \n"))
+
 			} else {
 				// 将读到的数据广播给所有在线用户, 写入到message
 				message <- MakeMsg(clnt, msg)
@@ -80,7 +92,14 @@ func HandlerConnect1(conn net.Conn) {
 
 	// 保证不退出
 	for {
+		// 监听channel上的数据流动
+		select {
+		case <-isQuit:
+			delete(onlineMap, clnt.Addr)           // 将用户从在线用户列表移除
+			message <- MakeMsg(clnt, "logout ...") // 写入用户退出消息到全局
+			return
 
+		}
 	}
 
 }
