@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"time"
 )
 
 // 创建用户结构体类型
@@ -33,6 +34,10 @@ func MakeMsg(clnt Client, msg string) (buf string) {
 
 func HandlerConnect1(conn net.Conn) {
 	defer conn.Close()
+
+	// 创建一个channel，判断用户是否活跃
+	hasData := make(chan bool)
+
 	// 获取用户的网络地址，ip+port
 	netAddr := conn.RemoteAddr().String()
 	// 创建新用户的结构体信息
@@ -87,6 +92,8 @@ func HandlerConnect1(conn net.Conn) {
 				message <- MakeMsg(clnt, msg)
 			}
 
+			hasData <- true
+
 		}
 	}()
 
@@ -95,6 +102,14 @@ func HandlerConnect1(conn net.Conn) {
 		// 监听channel上的数据流动
 		select {
 		case <-isQuit:
+			delete(onlineMap, clnt.Addr)           // 将用户从在线用户列表移除
+			message <- MakeMsg(clnt, "logout ...") // 写入用户退出消息到全局
+			return
+
+		case <-hasData:
+			// 什么都不做,目的是重置下面case的计时器
+
+		case <-time.After(time.Second * 10):
 			delete(onlineMap, clnt.Addr)           // 将用户从在线用户列表移除
 			message <- MakeMsg(clnt, "logout ...") // 写入用户退出消息到全局
 			return
