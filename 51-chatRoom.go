@@ -109,7 +109,8 @@ func HandlerConnect1(conn net.Conn) {
 		case <-hasData:
 			// 什么都不做,目的是重置下面case的计时器
 
-		case <-time.After(time.Second * 10):
+		case <-time.After(time.Second * 60):
+			close(clnt.C)                          // 终止go程 WriteMsgToClient
 			delete(onlineMap, clnt.Addr)           // 将用户从在线用户列表移除
 			message <- MakeMsg(clnt, "logout ...") // 写入用户退出消息到全局
 			return
