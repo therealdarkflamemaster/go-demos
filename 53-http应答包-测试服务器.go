@@ -3,7 +3,8 @@ package main
 import "net/http"
 
 func handler(w http.ResponseWriter, r *http.Request) {
-
+	// w : 写回给客户端（浏览器）， r : 从客户端（浏览器）读到的数据
+	w.Write([]byte("hello world"))
 }
 
 func main() {
