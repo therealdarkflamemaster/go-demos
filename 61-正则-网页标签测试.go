@@ -107,10 +107,14 @@ hello 6
 
 	//解析，编译正则表达式
 	//ret :=regexp.MustCompile(`<div>(.*?)</div>`)
-	// ret :=regexp.MustCompile(`<div>(?s:(.*?))</div>`)
-	ret := regexp.MustCompile(`<link rel="stylesheet" href="(?s:(.*?))"`)
+	ret := regexp.MustCompile(`<div>(?s:(.*?))</div>`)
+	// ret := regexp.MustCompile(`<link rel="stylesheet" href="(?s:(.*?))"`)
 
 	// 提取需要的信息
 	alls := ret.FindAllStringSubmatch(str, -1)
 	fmt.Println(alls)
+	for _, one := range alls {
+		fmt.Println(one[0])
+		fmt.Println(one[1])
+	}
 }
